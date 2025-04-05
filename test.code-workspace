@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"path": "../../../../procki/test"
+		},
+		{
+			"name": "plsfcknwrk",
+			"path": "../plsfcknwrk"
+		},
+		{
+			"name": "KYSER_BEZPRZEWODOWY",
+			"path": "."
+		},
+		{
+			"name": "fckfrovisioning",
+			"path": "../fckfrovisioning"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"inttypes.h": "c",
+			"esp_nimble_hci.h": "c",
+			"chrono": "c",
+			"typeinfo": "c",
+			"*.tcc": "cpp",
+			"cstdio": "cpp",
+			"esp_log.h": "c",
+			"scheme_ble.h": "c",
+			"mdns.h": "c",
+			"timers.h": "c",
+			"qrcode.h": "c",
+			"ble_svc_gatt.h": "c",
+			"esp_http_server.h": "c"
+		}
+	}
+}
