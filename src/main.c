@@ -51,8 +51,13 @@
 #define DEVICE_NAME "PROV_bzztmachen" // device name during provisioning, should begin with "PROV_"
 #define MAX_PLAYERS 3 //Maximum number of HV outputs, when changing value other changes are necessary
 #define SHOCK_TIME 8 // * 0.1s, might vary up to +100ms
-#define DUTY_CYCLE 500 // / 1024, better don't increase if you like your transformers working
+#define DUTY_CYCLE 450 // / 1024, better don't increase if you like your transformers working
+#define MAX_FREQ 1000
+#define MIN_FREQ 50 //depends on tansformer used
 
+
+#define RESET_PIN GPIO_NUM_10 //needed for reseting wifi provisioning, otherwise reflash
+// to reset short to ground for ~1s
 
 // flags are used to determine shock time left 
 int8_t flags[MAX_PLAYERS] = {0,0,0}; // adjust zeros
@@ -69,9 +74,9 @@ gpio_num_t gpio_list[MAX_PLAYERS] = //gpios used for mosfet control
 
 gpio_num_t led_list[MAX_PLAYERS] =  //gpios used for indication LEDs
 {
-    GPIO_NUM_21,
     GPIO_NUM_3,
-    GPIO_NUM_10
+    GPIO_NUM_20,
+    GPIO_NUM_21
 };
 
 ledc_timer_t timer_list[MAX_PLAYERS] = //timers used for PWM
@@ -87,6 +92,7 @@ ledc_channel_t ch_list[MAX_PLAYERS] = //channels used for PWM
     LEDC_CHANNEL_1,
     LEDC_CHANNEL_2
 };
+
 
 // ###################### Here custom configuration ends #################################
 //better don't change anything below
@@ -145,6 +151,43 @@ void init_pins(void)
         gpio_set_direction(led_list[i], GPIO_MODE_OUTPUT);
         gpio_set_level(led_list[i],0);
     }
+    gpio_config_t reset_pin_conf =
+    {
+        .pin_bit_mask = 1ULL << RESET_PIN,
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE
+    };
+    gpio_config(&reset_pin_conf);
+}
+
+
+static esp_err_t reset_device() {
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, ch_list[i], 0);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, ch_list[i]);
+        gpio_set_level(led_list[i], 0);
+    }
+    wifi_prov_mgr_reset_sm_state_for_reprovision();
+    wifi_prov_mgr_deinit();
+    esp_restart();
+}
+
+void reset_task(void *arg){
+    while (1) {
+        if (gpio_get_level(RESET_PIN) == 0){
+            vTaskDelay (300/portTICK_PERIOD_MS);
+            if (gpio_get_level(RESET_PIN) == 0)
+            {
+                reset_device();
+            }
+        }
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+}
+
+void init_reset_task(){
+    xTaskCreate(reset_task,"reset",256,NULL,10,NULL);
 }
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -227,6 +270,7 @@ static esp_err_t machen_handler(httpd_req_t *req)
             ledc_set_duty(LEDC_LOW_SPEED_MODE, ch_list[player], DUTY_CYCLE);
             ledc_update_duty(LEDC_LOW_SPEED_MODE, ch_list[player]);
             gpio_set_level(led_list[player], 1);
+            freq = MIN(MAX(freq, MIN_FREQ), MAX_FREQ);
             ledc_set_freq(LEDC_LOW_SPEED_MODE, timer_list[player], freq);
             httpd_resp_send(req, "OK", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
@@ -268,4 +312,5 @@ void app_main(void)
     start_server();
     init_pins();
     init_flagger();
+    init_reset_task();
 }
