@@ -10,6 +10,9 @@
 #include "wifi_provisioning/scheme_ble.h"
 #include "esp_wifi.h"
 #include "mdns.h"
+
+#define BZZTMACHEN_VERSION "BzztMachen v-1.2"
+
 //default configuration for increased priority to make sure there will be no delay
 //if causing problems try commenting out code below
 #define HTTP_CONFIGURATION(){                           \
@@ -250,6 +253,17 @@ void start_mdns_service(void)
     mdns_instance_name_set("BZZT MACHEN SERVER");
 }
 
+static esp_err_t test_version_handler(httpd_req_t *req)
+{
+    char resp[256];
+    snprintf(resp, sizeof(resp),
+        "%s\nGET /version - returns version and available methods \nPOST /machen - electric shock request, format:\n[player],[frequency]\n%d<= frequency <= %d",
+         BZZTMACHEN_VERSION, MIN_FREQ, MAX_FREQ );
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_send(req, resp, sizeof(resp));
+    return ESP_OK;
+}
+
 static esp_err_t machen_handler(httpd_req_t *req)
 {
     char buf[24];
@@ -285,6 +299,8 @@ static esp_err_t machen_handler(httpd_req_t *req)
     return ESP_FAIL;
 }
 
+
+
 static httpd_handle_t start_server(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
@@ -298,6 +314,13 @@ static httpd_handle_t start_server(void) {
             .user_ctx  = NULL
         };
         httpd_register_uri_handler(server, &bzzt_machen);
+        static const httpd_uri_t test_version = {
+            .uri       = "/version",
+            .method    = HTTP_GET,
+            .handler   = test_version_handler,
+            .user_ctx  = NULL
+        };
+        httpd_register_uri_handler(server, &test_version);
     }
     return server;
 }
