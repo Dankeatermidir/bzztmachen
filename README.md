@@ -32,3 +32,14 @@ Because impedance and stuff the higher frequency the lower is power.
 
 Why HTTP?
 bc including libraries in cheat engine is cancer, and http is available by default
+
+# API
+To trigger electric shock at given player, you need to specify **player_number** and **frequency** and make POST request to */machen* uri with given format:
+"player_number,frequency", for example:
+```
+curl -d "0,50" http://bzztmachen.local:80/machen
+```
+
+**player_nymber** starts iterating from 0.
+**frequency** is capped between 50 and 1000 by default. The higher frequency the lower power cuz impedance and stuff. 
+**address** - bzztmachen uses mdns to avoid checking IP address every time, but it might be not resolved by mobile phones. On PC *bzztmachen.local* should be resolved without a problem.
