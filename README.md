@@ -41,5 +41,7 @@ curl -d "0,50" http://bzztmachen.local:80/machen
 ```
 
 **player_nymber** starts iterating from 0.
+
 **frequency** is capped between 50 and 1000 by default. The higher frequency the lower power cuz impedance and stuff. 
+
 **address** - bzztmachen uses mdns to avoid checking IP address every time, but it might be not resolved by mobile phones. On PC *bzztmachen.local* should be resolved without a problem.
