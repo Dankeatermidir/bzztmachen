@@ -164,34 +164,6 @@ void init_pins(void)
 }
 
 
-static esp_err_t reset_device() {
-    for (int i = 0; i < MAX_PLAYERS; i++)
-    {
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, ch_list[i], 0);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, ch_list[i]);
-        gpio_set_level(led_list[i], 0);
-    }
-    wifi_prov_mgr_reset_sm_state_for_reprovision();
-    wifi_prov_mgr_deinit();
-    esp_restart();
-}
-
-void reset_task(void *arg){
-    while (1) {
-        if (gpio_get_level(RESET_PIN) == 0){
-            vTaskDelay (300/portTICK_PERIOD_MS);
-            if (gpio_get_level(RESET_PIN) == 0)
-            {
-                reset_device();
-            }
-        }
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-}
-
-void init_reset_task(){
-    xTaskCreate(reset_task,"reset",256,NULL,10,NULL);
-}
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
@@ -252,6 +224,36 @@ void start_mdns_service(void)
     mdns_hostname_set("bzztmachen");
     mdns_instance_name_set("BZZT MACHEN SERVER");
 }
+
+static esp_err_t reset_device() {
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, ch_list[i], 0);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, ch_list[i]);
+        gpio_set_level(led_list[i], 0);
+    }
+    nvs_flash_erase();
+    esp_restart();
+    return ESP_OK;
+}
+
+void reset_task(void *arg){
+    while (1) {
+        if (gpio_get_level(RESET_PIN) == 0){
+            vTaskDelay (300/portTICK_PERIOD_MS);
+            if (gpio_get_level(RESET_PIN) == 0)
+            {
+                reset_device();
+            }
+        }
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+}
+
+void init_reset_task(){
+    xTaskCreate(reset_task,"reset",512,NULL,10,NULL);
+}
+
 
 static esp_err_t test_version_handler(httpd_req_t *req)
 {
